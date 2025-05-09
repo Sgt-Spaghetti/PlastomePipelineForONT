@@ -14,5 +14,5 @@ files=$(find $PWD/RawData -type f -name "*.fastq") # Read the names of all the f
 
 for file in $files
 do 
-	python3 ATCleaner_V1.py $file 50 ATCleanerOutput
+	python3 ATCleaner_V2.py $file 55 ATCleanerOutput
 done
