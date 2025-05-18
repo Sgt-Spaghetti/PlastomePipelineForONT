@@ -5,7 +5,7 @@ if [ -d "DeNovoAssembly" ]; then # If an old ouptut directory exists
     mkdir -p "DeNovoAssembly/AlignmentCheck" # start afresh
     mkdir -p "DeNovoAssembly/PorechopCleaned"
 else
-    mkdir -p "DeNovoAssembly/PorechopCleaned"# else, just create it
+    mkdir -p "DeNovoAssembly/PorechopCleaned" # else, just create it
     mkdir -p "DeNovoAssembly/AlignmentCheck"
 fi
 
