@@ -100,7 +100,7 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
     print("------- FINISHED CLEANING ---------")
     print("------- RE-COMPRESSING ---------")
     subprocess.run(["gzip", "-r", Input_Folder]) # Re-compress the raw read files
-    subprocess.run(["gzip", "-r", Output_Folder]) # Re-compress the output files
+    subprocess.run(["gzip -r " + Output_Folder + "/*.fastq"], shell=True) # Re-compress the output files
     ATcleanerhasrun.set(True)
 
     print("------- ATCLEANER FINISHED ---------")
