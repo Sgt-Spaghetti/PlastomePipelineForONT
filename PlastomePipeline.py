@@ -57,12 +57,11 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
 
     Total_Entries: int = 0 # How many total reads
     Accepted_Entries: int = 0 # How any chloroplast reads have we kept?
-    print("------- DECOMPRESSING ---------")
-    subprocess.run(["gzip", "-dr", Input_Folder]) # Unzip the raw read files
     print("------- STARTED CLEANING ---------")
 
     for Input_File in os.listdir(str(Input_Folder)):
-        with open(InputFolder+"/"+Input_File) as file: # Open the file
+        subprocess.run(["gzip", "-dk", Input_Folder+"/"+Input_File]) # Unzip the raw read files
+        with open(InputFolder+"/"+Input_File[:-3]) as file: # Open the file
             print("Processing File: " + str(Input_File))
             raw_data: list[str] = file.readlines() # Read the file as a list of lines
             location: int = 0 # Keep track of which line in the file I am
@@ -89,17 +88,16 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
                         with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
                             logfile.writelines("REJECTED\n")
                 location += 1 # Move to the next line
-
-    with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
-        logfile.writelines("Total Reads: " + str(Total_Entries) + "\n")
-        logfile.writelines("Accepted Reads: " + str(Accepted_Entries) + "\n")
-        logfile.writelines("Percentage of total kept: " + str((Accepted_Entries/Total_Entries)*100) + "\n")
-        logfile.writelines("Output file name: " + Output_Folder + Input_File[0:-6] + "_AT-cleaned.fastq" + "\n\n")
+            os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
+        with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
+            logfile.writelines("Total Reads: " + str(Total_Entries) + "\n")
+            logfile.writelines("Accepted Reads: " + str(Accepted_Entries) + "\n")
+            logfile.writelines("Percentage of total kept: " + str((Accepted_Entries/Total_Entries)*100) + "\n")
+            logfile.writelines("Output file name: " + Output_Folder + Input_File[0:-6] + "_AT-cleaned.fastq" + "\n\n")
 
 
     print("------- FINISHED CLEANING ---------")
-    print("------- RE-COMPRESSING ---------")
-    subprocess.run(["gzip", "-r", Input_Folder]) # Re-compress the raw read files
+    print("------- COMPRESSING OUTPUT---------")
     subprocess.run(["gzip -r " + Output_Folder + "/*.fastq"], shell=True) # Re-compress the output files
     ATcleanerhasrun.set(True)
 
