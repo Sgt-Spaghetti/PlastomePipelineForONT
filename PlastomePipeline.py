@@ -83,6 +83,9 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
                             at_content += 1
                     at_percentage: float = (at_content/sequence_length) * 100
 
+                    if sequence_length >= Minimuim_Read_Length:
+                        ATandlengthDistribution.append((at_percentage, sequence_length)) # Keep track of the length and AT content of all sequences for data visualisation
+
                     with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
                         logfile.writelines("entry number " + str(Total_Entries) + " AT percentage: " + str(at_percentage) + " Read Length: " + str(sequence_length) + "\n")
 
@@ -100,7 +103,6 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
                         with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile: # Log the sequence as rejected
                             logfile.writelines("REJECTED\n")
 
-                ATandlengthDistribution.append((at_percentage, sequence_length)) # Keep track of the length and AT content of all sequences for data visualisation
 
                 location += 1 # Move to the next line
             os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
