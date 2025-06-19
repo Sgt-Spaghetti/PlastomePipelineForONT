@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import filedialog
 import pandas as pd
 import numpy as np
+import statistics
 import matplotlib.pyplot as plt
 
 '''
@@ -19,7 +20,7 @@ current_directory: str = os.getcwd()
 AT CLEANING ALGORITHM
 '''
 
-def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: float):
+def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: float, minquality):
 
 
     print("------- STARTING ATCLEANER ---------")
@@ -28,6 +29,7 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
     Cutoff_Percentage_From: float  = CutoffMin # Discard entries with an AT percentage below this ammount
     Cutoff_Percentage_To: float  = CutoffMax # Discard entries with an AT percentage above this ammount
     Minimuim_Read_Length: float = MinRead # Discard entries with a read length below this value
+    Minimum_Sequence_Quality: float = minquality
     Output_Folder: str = current_directory + "/ATCleanerOutput" # name of output directory
 
     ATandlengthDistribution = []
@@ -55,11 +57,6 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
     repeat until end
     '''
 
-    #Input_File: str = input("Name of input file:\n")
-    #Input_File: str = "example.fastq"
-    #Cutoff_Percentage: float = float(input("What AT percentage cutoff should be used?\neg \"40\" indicates all sequences above 40% AT content will be retained, the rest will be discarded.\n"))
-    #Cutoff_Percentage: float = 50.00
-
     Total_Entries: int = 0 # How many total reads
     Total_Accepted_Bases: int = 0 # how many bases have we got in our data?
     Accepted_Entries: int = 0 # How any chloroplast reads have we kept?
@@ -77,19 +74,25 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
                     sequence: str = raw_data[location+1] # look at the next line, this is the sequence!
                     sequence_length: int = 0 # keep track of total length of sequence
                     at_content: int = 0 # Keep track of the number of Adenines or Thymines encountered
-                    for base in sequence:
+                    #sequence_score: list[int] = []# Keep track of the cumulative per-base Phred scores.
+                    sequence_score: int = 0# Keep track of the cumulative per-base Phred scores.
+                    for position, base in enumerate(sequence):
+                        #sequence_score.append(ord(raw_data[location+3][position]) - 33) # Phred score is ascii code - 33
+                        sequence_score += ord(raw_data[location+3][position]) - 33 # Phred score is ascii code - 33
                         sequence_length += 1
                         if base == "A" or base == "T" or base == "U":
                             at_content += 1
                     at_percentage: float = (at_content/sequence_length) * 100
+                    #quality_score: int = statistics.median(sequence_score)
+                    quality_score: float = sequence_score/sequence_length
 
-                    if sequence_length >= Minimuim_Read_Length:
-                        ATandlengthDistribution.append((at_percentage, sequence_length)) # Keep track of the length and AT content of all sequences for data visualisation
+                    if sequence_length >= Minimuim_Read_Length and quality_score >= Minimum_Sequence_Quality:
+                        ATandlengthDistribution.append((at_percentage, sequence_length, quality_score)) # Keep track of the length and AT content of all sequences for data visualisation
 
                     with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
                         logfile.writelines("entry number " + str(Total_Entries) + " AT percentage: " + str(at_percentage) + " Read Length: " + str(sequence_length) + "\n")
 
-                    if at_percentage >= Cutoff_Percentage_From and at_percentage < Cutoff_Percentage_To and sequence_length >= Minimuim_Read_Length: # Does the sequence satisfy the plastome constraints?
+                    if at_percentage >= Cutoff_Percentage_From and at_percentage < Cutoff_Percentage_To and sequence_length >= Minimuim_Read_Length and quality_score >= Minimum_Sequence_Quality: # Does the sequence satisfy the plastome constraints?
                         Total_Accepted_Bases += sequence_length
                         with open(Output_Folder + "/" + Input_File.rpartition("/")[2][0:-6] + "_AT-cleaned.fastq", "a") as output:
                             output.writelines(raw_data[location:location+4]) # Write the raw entry to a new file, appending to the end. If the file does not exist, it creates it.
@@ -135,7 +138,7 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
     if os.path.isfile("SequenceDataDistribution.csv"):
         os.remove("SequenceDataDistribution.csv")
     outdata = pd.DataFrame(ATandlengthDistribution)
-    outdata.columns = ["AT", "Length"]
+    outdata.columns = ["AT", "Length", "Score"]
     outdata.to_csv("SequenceDataDistribution.csv") # save the data distribution of all the sequences
 
     DataVisualisation("SequenceDataDistribution.csv")
@@ -201,12 +204,13 @@ def PlastomeAssemble(ReferenceGenomePath: str):
 
 
 
-def CheckDataDistribution(Input_Folder: str, entry, atmin, atmax, minlength):
+def CheckDataDistribution(Input_Folder: str, entry, atmin, atmax, minlength, minquality):
     print("----- Processing Data -----")
     ATandLengthDistribution = []
 
     Total_Accepted_Bases: int = 0
     for Input_File in os.listdir(str(Input_Folder)):
+        print("Processing File: " + str(Input_File))
         subprocess.run(["gzip", "-dk", Input_Folder+"/"+Input_File]) # Unzip the raw read files
 
         with open(Input_Folder+"/"+Input_File[:-3]) as file: # Open the file
@@ -217,18 +221,23 @@ def CheckDataDistribution(Input_Folder: str, entry, atmin, atmax, minlength):
                     sequence: str = raw_data[location+1] # look at the next line, this is the sequence!
                     sequence_length: int = 0 # keep track of total length of sequence
                     at_content: int = 0 # Keep track of the number of Adenines or Thymines encountered
-                    for base in sequence:
+                    #sequence_score: list[int] = [] # Keep track of the per-base Phred scores.
+                    sequence_score: int = 0 # Keep track of the per-base Phred scores.
+                    for position, base in enumerate(sequence):
                         sequence_length += 1
+                        #sequence_score.append(ord(raw_data[location+3][position]) - 33) # Phred score is ascii code - 33
+                        sequence_score += ord(raw_data[location+3][position]) - 33 # Phred score is ascii code - 33
                         if base == "A" or base == "T" or base == "U":
                             at_content += 1
                     at_percentage: float = (at_content/sequence_length) * 100
-                    if sequence_length > minlength:
-                        ATandLengthDistribution.append((at_percentage,sequence_length))
+                    #quality_score: int = statistics.median(sequence_score)
+                    quality_score: float = sequence_score/sequence_length
+                    if sequence_length > minlength and quality_score >= minquality:
+                        ATandLengthDistribution.append((at_percentage,sequence_length,quality_score))
                         if at_percentage >= atmin and at_percentage < atmax:
                             Total_Accepted_Bases += sequence_length
                 location += 1
         os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
-
     if input_settings["genomepath"] != "":
         genomesize: int = 0
         with open(input_settings["genomepath"]) as file:
@@ -245,7 +254,7 @@ def CheckDataDistribution(Input_Folder: str, entry, atmin, atmax, minlength):
     if os.path.isfile("SequenceDataDistribution.csv"):
         os.remove("SequenceDataDistribution.csv")
     outdata = pd.DataFrame(ATandLengthDistribution)
-    outdata.columns = ["AT", "Length"]
+    outdata.columns = ["AT", "Length", "Score"]
     outdata.to_csv("SequenceDataDistribution.csv") # save the data distribution of all the sequences
   
 def DataVisualisation(input_file): # Plot a nice graph of AT distrubution
@@ -299,7 +308,7 @@ GUI STUFF
 # Requires chmod u+rx
 
 def Clean():
-    ATCLEANER(input_settings["inputdir"], float(ATmin.get()), float(ATmax.get()), float(minReadLength.get()))
+    ATCLEANER(input_settings["inputdir"], float(ATmin.get()), float(ATmax.get()), float(minReadLength.get()), float(minQualityScore.get()))
 
 def Alignment():
     print("------- STARTING ALIGNMENT ---------")
@@ -323,7 +332,7 @@ def GenomeLocation():
     input_settings["genomepath"] = ReferenceGenomeLocation
 
 def CheckData():
-    CheckDataDistribution(input_settings["inputdir"], Coverage, float(ATmin.get()), float(ATmax.get()), float(minReadLength.get()))
+    CheckDataDistribution(input_settings["inputdir"], Coverage, float(ATmin.get()), float(ATmax.get()), float(minReadLength.get()), float(minQualityScore.get()))
     DataVisualisation("SequenceDataDistribution.csv")
     
 root = tk.Tk()
@@ -336,6 +345,7 @@ input_settings: dict = {
 ATmin = tk.StringVar()
 ATmax = tk.StringVar()
 minReadLength = tk.StringVar()
+minQualityScore = tk.StringVar()
 ATcleanerhasrun = tk.BooleanVar()
 
 
@@ -367,9 +377,13 @@ minreadlengthlabel = tk.Label(inputframe, text="minimum read length (bases):").g
 MinReadLength = tk.Entry(inputframe, textvariable=minReadLength)
 MinReadLength.insert(0,"10000")
 MinReadLength.grid(row=7, column=0)
+minreadqualityscorelabel = tk.Label(inputframe, text="minimum Q score (mean):").grid(row=8, column=0)
+MinReadLength = tk.Entry(inputframe, textvariable=minQualityScore)
+MinReadLength.insert(0,"30")
+MinReadLength.grid(row=9, column=0)
 
-referencegenomelabel = tk.Label(inputframe, text="Select reference genome (Align only):").grid(row=8, column=0)
-SelectInputGenome = tk.Button(inputframe, text="Reference Genome", command=GenomeLocation).grid(row=9, column=0)
+referencegenomelabel = tk.Label(inputframe, text="Select reference genome (Align only):").grid(row=10, column=0)
+SelectInputGenome = tk.Button(inputframe, text="Reference Genome", command=GenomeLocation).grid(row=11, column=0)
 
 DataVis = tk.Button(visframe, text="Check Data Distribution", command=CheckData).grid(row=0, column=0)
 coverageframe.grid(row=1, column=0)
