@@ -69,7 +69,7 @@ def ATCLEANER(InputFolder: str, CutoffMin: float, CutoffMax: float, MinRead: flo
             raw_data: list[str] = file.readlines() # Read the file as a list of lines
             location: int = 0 # Keep track of which line in the file I am
             for line in raw_data: # For each line
-                if line[0] == "@": # Does it start with an identifier of a new read?
+                if line[0] == "@" and (raw_data[location+1][0] != "@"): # Does it start with an identifier of a new read?
                     Total_Entries += 1 # Increase total reads by 1
                     sequence: str = raw_data[location+1] # look at the next line, this is the sequence!
                     sequence_length: int = 0 # keep track of total length of sequence
@@ -217,7 +217,7 @@ def CheckDataDistribution(Input_Folder: str, entry, atmin, atmax, minlength, min
             raw_data: list[str] = file.readlines() # Read the file as a list of lines
             location: int = 0 # Keep track of which line in the file I am
             for line in raw_data: # For each line
-                if line[0] == "@": # Does it start with an identifier of a new read?
+                if line[0] == "@" and (raw_data[location+1][0] != "@"): # Does it start with an identifier of a new read?
                     sequence: str = raw_data[location+1] # look at the next line, this is the sequence!
                     sequence_length: int = 0 # keep track of total length of sequence
                     at_content: int = 0 # Keep track of the number of Adenines or Thymines encountered
