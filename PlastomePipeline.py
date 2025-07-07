@@ -186,8 +186,8 @@ def PlastomeAssemble(ReferenceGenomePath: str):
     for file in os.listdir(Input_Folder):
         if file[-9:] == ".fastq.gz":
             subprocess.run(["porechop", "-i", Input_Folder+"/"+file, "-o", Output_Folder+"/PorechopCleaned/PORECHOP_"+file])
-    #subprocess.run(["cat "+Output_Folder+"/PorechopCleaned/*.fastq.gz > "+ Output_Folder+"/concatenated_porechop_cleaned.fastq.gz"], shell=True)
-    #subprocess.run(["flye --nano-hq " + Output_Folder + "/concatenated_porechop_cleaned.fastq.gz --out-dir " + Output_Folder + "/FlyeOutput --genome-size 0.0002g -i 3"], shell=True)
+    subprocess.run(["cat "+Output_Folder+"/PorechopCleaned/*.fastq.gz > "+ Output_Folder+"/concatenated_porechop_cleaned.fastq.gz"], shell=True)
+    subprocess.run(["flye --nano-hq " + Output_Folder + "/concatenated_porechop_cleaned.fastq.gz --out-dir " + Output_Folder + "/FlyeOutput --genome-size 0.0002g -i 3"], shell=True)
     shutil.rmtree(Output_Folder+"/PorechopCleaned")
     os.remove(Output_Folder+"/concatenated_porechop_cleaned.fastq.gz")
     
