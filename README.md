@@ -24,7 +24,7 @@ python3 PlastomePipeline.py
 1. Select the input directory to where the ONT reads are stored in .fastq.gz format
 2. Select the desired output directory for the program
 3. Set the minimum and maximium AT content for the reads to keep, as well as the minimum read length and read quality score required for positive selection
-4. OPTIONAL Select the reference genome of the species (used to calculate coverage)
+4. _OPTIONAL_ Select the reference genome of the species (used to calculate coverage)
 5. Press "Check Data Distribution"
 
 A .png image of the resulting graph will also be saved in the designated output directory
@@ -33,7 +33,7 @@ A .png image of the resulting graph will also be saved in the designated output 
 1. Select the input directory to where the ONT reads are stored in .fastq.gz format
 2. Select the desired output directory for the program
 3. Set the minimum and maximium AT content for the reads to keep, as well as the minimum read length and read quality score required for positive selection
-4. OPTIONAL Select the reference genome of the species (used to calculate coverage)
+4. _OPTIONAL_ Select the reference genome of the species (used to calculate coverage)
 5. Press the "ATCleaner" button to process the reads
 
 The resulting filtered reads, along with associated log files are stored in the "ATCleaner" folder within the chosen output directory
