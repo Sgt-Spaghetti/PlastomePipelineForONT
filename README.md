@@ -71,3 +71,28 @@ The resulting alignment is stored in the "PlastomeAlignmentOutput" folder within
 Make sure the "Skip Porechop" checkbox is **filled** (ticked)
 
 The resulting assembly is stored in the "PlastomeDeNovoAssembly/FLYOUT" folder within the chosen output directory, it is called "assembly.fasta". The optional alignment with a reference genome can be found in the "PlastomeDeNovoAssembly/AlignmentCheck" folder within the chosen output directory
+
+## Parameter Details
+### Alignment
+Alignment is done through minimap2, using this call:
+```
+minimap2 -ax map-ont ReferenceGenomePath  Input_Folder/*.fastq.gz > Output_Folder/alignment.sam
+```
+The alignment is then converted to a bam file, sorted and indexed:
+```
+samtools view -@ n -Sb -o Output_Folder/alignment.bam Output_Folder/alignment.sam
+samtools sort -O bam -o Output_Folder/sorted_alignment.bam Output_Folder/alignment.bam
+samtools index Output_Folder/sorted_alignment.bam
+```
+
+### Assembly
+### Running Flye
+The genome size is preset to the apporximate size of the Chlamydomonas reinhartii plastome
+```
+flye --nano-hq Output_Folder/concatenated_input_file.fastq.gz --out-dir Output_Folder/FlyeOutput --genome-size 0.0002g -i 3
+```
+#### Using prior alignments as read inputs
+```
+samtools view -bF 0x900 -q 1 Output_Folder/PlastomeAlignmentOutput/sorted_alignment.bam > Output_Folder/mapped_primaries.bam
+samtools fastq Output_Folder/mapped_primaries.bam > Output_Folder/mapped_primaries.fastq
+```
