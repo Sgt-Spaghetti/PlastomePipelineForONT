@@ -28,7 +28,7 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
     Input_Folder: str = os.fspath(InputFolder) # Name of the folder holding all the raw reads
     Cutoff_Percentage_From: float  = CutoffMin # Discard entries with an AT percentage below this ammount
     Cutoff_Percentage_To: float  = CutoffMax # Discard entries with an AT percentage above this ammount
-    Minimuim_Read_Length: float = MinRead # Di truescard entries with a read length below this value
+    Minimum_Read_Length: float = MinRead # Di truescard entries with a read length below this value
     Minimum_Sequence_Quality: float = minquality
     if OutputFolder == "":
         Output_Folder: str = os.fspath(current_directory + "/ATCleanerOutput") # name of output directory
@@ -67,86 +67,90 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
     print("------- STARTED CLEANING ---------")
 
     for Input_File in os.listdir(str(Input_Folder)):
+        print("Processing File: " + str(Input_File))
         subprocess.run(["gzip -dk " + (Input_Folder+"/"+Input_File).replace(" ", "\\ ")], shell=True) # Unzip the raw read files
-        with open(Input_Folder+"/"+Input_File[:-3]) as file: # Open the file
-            print("Processing File: " + str(Input_File))
-            raw_data: list[str] = file.readlines() # Read the file as a list of lines
-            location: int = 0 # Keep track of which line in the file I am
-            for line in raw_data: # For each line
-                if line[0] == "@" and (raw_data[location+1][0] != "@"): # Does it start with an identifier of a new read?
-                    Total_Entries += 1 # Increase total reads by 1
-                    sequence: str = raw_data[location+1] # look at the next line, this is the sequence!
-                    sequence_length: int = 0 # keep track of total length of sequence
-                    at_content: int = 0 # Keep track of the number of Adenines or Thymines encountered
-                    #sequence_score: list[int] = []# Keep track of the cumulative per-base Phred scores.
-                    sequence_score: int = 0# Keep track of the cumulative per-base Phred scores.
-                    for position, base in enumerate(sequence):
-                        #sequence_score.append(ord(raw_data[location+3][position]) - 33) # Phred score is ascii code - 33
-                        sequence_score += ord(raw_data[location+3][position]) - 33 # Phred score is ascii code - 33
-                        sequence_length += 1
-                        if base == "A" or base == "T" or base == "U":
-                            at_content += 1
-                    at_percentage: float = (at_content/sequence_length) * 100
-                    #quality_score: int = statistics.median(sequence_score)
-                    quality_score: float = sequence_score/sequence_length
+        if UseBinary.get() == True:
+            subprocess.run(["./ATcleaning_linux_binary", str(Input_File), str(Cutoff_Percentage_From), str(Cutoff_Percentage_To), str(Minimum_Read_Length), str(Minimum_Sequence_Quality), str(Output_Folder + "/" + Input_File.rpartition("/")[2][0:-6] + "_AT-cleaned.fastq") ])    
+        else:
+            with open(Input_Folder+"/"+Input_File[:-3]) as file: # Open the file
+                raw_data: list[str] = file.readlines() # Read the file as a list of lines
+                location: int = 0 # Keep track of which line in the file I am
+                for line in raw_data: # For each line
+                    if line[0] == "@" and (raw_data[location+1][0] != "@"): # Does it start with an identifier of a new read?
+                        Total_Entries += 1 # Increase total reads by 1
+                        sequence: str = raw_data[location+1] # look at the next line, this is the sequence!
+                        sequence_length: int = 0 # keep track of total length of sequence
+                        at_content: int = 0 # Keep track of the number of Adenines or Thymines encountered
+                        #sequence_score: list[int] = []# Keep track of the cumulative per-base Phred scores.
+                        sequence_score: int = 0# Keep track of the cumulative per-base Phred scores.
+                        for position, base in enumerate(sequence):
+                            #sequence_score.append(ord(raw_data[location+3][position]) - 33) # Phred score is ascii code - 33
+                            sequence_score += ord(raw_data[location+3][position]) - 33 # Phred score is ascii code - 33
+                            sequence_length += 1
+                            if base == "A" or base == "T" or base == "U":
+                                at_content += 1
+                        at_percentage: float = (at_content/sequence_length) * 100
+                        #quality_score: int = statistics.median(sequence_score)
+                        quality_score: float = sequence_score/sequence_length
 
-                    if sequence_length >= Minimuim_Read_Length and quality_score >= Minimum_Sequence_Quality:
-                        ATandlengthDistribution.append((at_percentage, sequence_length, quality_score, "-")) # Keep track of the length and AT content of all sequences for data visualisation
+                        if sequence_length >= Minimuim_Read_Length and quality_score >= Minimum_Sequence_Quality:
+                            ATandlengthDistribution.append((at_percentage, sequence_length, quality_score, "-")) # Keep track of the length and AT content of all sequences for data visualisation
 
-                    with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
-                        logfile.writelines("entry number " + str(Total_Entries) + " AT percentage: " + str(at_percentage) + " Read Length: " + str(sequence_length) + "\n")
+                        with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
+                            logfile.writelines("entry number " + str(Total_Entries) + " AT percentage: " + str(at_percentage) + " Read Length: " + str(sequence_length) + "\n")
 
-                    if at_percentage >= Cutoff_Percentage_From and at_percentage < Cutoff_Percentage_To and sequence_length >= Minimuim_Read_Length and quality_score >= Minimum_Sequence_Quality: # Does the sequence satisfy the plastome constraints?
-                        Total_Accepted_Bases += sequence_length
-                        with open(Output_Folder + "/" + Input_File.rpartition("/")[2][0:-6] + "_AT-cleaned.fastq", "a") as output:
-                            output.writelines(raw_data[location:location+4]) # Write the raw entry to a new file, appending to the end. If the file does not exist, it creates it.
+                        if at_percentage >= Cutoff_Percentage_From and at_percentage < Cutoff_Percentage_To and sequence_length >= Minimuim_Read_Length and quality_score >= Minimum_Sequence_Quality: # Does the sequence satisfy the plastome constraints?
+                            Total_Accepted_Bases += sequence_length
+                            with open(Output_Folder + "/" + Input_File.rpartition("/")[2][0:-6] + "_AT-cleaned.fastq", "a") as output:
+                                output.writelines(raw_data[location:location+4]) # Write the raw entry to a new file, appending to the end. If the file does not exist, it creates it.
 
-                        with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile: # Create a log file entry for debugging purposes
-                            logfile.writelines("ACCEPTED\n")
+                            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile: # Create a log file entry for debugging purposes
+                                logfile.writelines("ACCEPTED\n")
 
-                        Accepted_Entries += 1 # We have accepted this sequence!
+                            Accepted_Entries += 1 # We have accepted this sequence!
 
-                    else: # Otherwise, the constraints were not satisfied
-                        with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile: # Log the sequence as rejected
-                            logfile.writelines("REJECTED\n")
+                        else: # Otherwise, the constraints were not satisfied
+                            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile: # Log the sequence as rejected
+                                logfile.writelines("REJECTED\n")
 
 
-                location += 1 # Move to the next line
-            os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
-        with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
-            logfile.writelines("Total Reads: " + str(Total_Entries) + "\n")
-            logfile.writelines("Accepted Reads: " + str(Accepted_Entries) + "\n")
-            logfile.writelines("Percentage of total kept: " + str((Accepted_Entries/Total_Entries)*100) + "\n")
-            logfile.writelines("Output file name: " + Output_Folder + Input_File[0:-6] + "_AT-cleaned.fastq" + "\n\n")
+                    location += 1 # Move to the next line
+                os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
+            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
+                logfile.writelines("Total Reads: " + str(Total_Entries) + "\n")
+                logfile.writelines("Accepted Reads: " + str(Accepted_Entries) + "\n")
+                logfile.writelines("Percentage of total kept: " + str((Accepted_Entries/Total_Entries)*100) + "\n")
+                logfile.writelines("Output file name: " + Output_Folder + Input_File[0:-6] + "_AT-cleaned.fastq" + "\n\n")
 
     print("------- FINISHED CLEANING ---------")
     print("------- COMPRESSING OUTPUT---------")
     subprocess.run(["gzip -r " + Output_Folder.replace(" ", "\\ ") + "/*.fastq"], shell=True) # Compress the output files
     ATcleanerhasrun.set(True)
 
-    if input_settings["genomepath"] != "":
-        genomesize: int = 0
-        with open(os.fspath(input_settings["genomepath"])) as file:
-            for line in file.readlines():
-                if line[0] != ">":
-                    for character in line:
-                        genomesize += 1
+    if UseBinary.get() == False:
+        if input_settings["genomepath"] != "":
+            genomesize: int = 0
+            with open(os.fspath(input_settings["genomepath"])) as file:
+                for line in file.readlines():
+                    if line[0] != ">":
+                        for character in line:
+                            genomesize += 1
 
-        coverage: float = Total_Accepted_Bases / genomesize
-        Coverage.config(state=tk.NORMAL)
-        Coverage.delete('1.0', tk.END)
-        Coverage.insert(tk.END, str(coverage))
-        Coverage.config(state=tk.DISABLED)
-        ATandlengthDistribution.append(("","","",coverage))
-                        
+            coverage: float = Total_Accepted_Bases / genomesize
+            Coverage.config(state=tk.NORMAL)
+            Coverage.delete('1.0', tk.END)
+            Coverage.insert(tk.END, str(coverage))
+            Coverage.config(state=tk.DISABLED)
+            ATandlengthDistribution.append(("","","",coverage))
+                            
 
-    if os.path.isfile(os.path.split(Output_Folder)[0]+"/SequenceDataDistribution.csv"):
-        os.remove(os.path.split(Output_Folder)[0]+"/SequenceDataDistribution.csv")
-    outdata = pd.DataFrame(ATandlengthDistribution)
-    outdata.columns = ["AT", "Length", "Score", "coverage"]
-    outdata.to_csv(os.path.split(Output_Folder)[0]+"/SequenceDataDistribution.csv") # save the data distribution of all the sequences
+        if os.path.isfile(os.path.split(Output_Folder)[0]+"/SequenceDataDistribution.csv"):
+            os.remove(os.path.split(Output_Folder)[0]+"/SequenceDataDistribution.csv")
+        outdata = pd.DataFrame(ATandlengthDistribution)
+        outdata.columns = ["AT", "Length", "Score", "coverage"]
+        outdata.to_csv(os.path.split(Output_Folder)[0]+"/SequenceDataDistribution.csv") # save the data distribution of all the sequences
 
-    DataVisualisation(os.path.split(Output_Folder)[0]+"/SequenceDataDistribution.csv", os.path.split(Output_Folder)[0])
+        DataVisualisation(os.path.split(Output_Folder)[0]+"/SequenceDataDistribution.csv", os.path.split(Output_Folder)[0])
     print("------- ATCLEANER FINISHED ---------")
 
 
@@ -399,6 +403,7 @@ minQualityScore = tk.StringVar()
 ATcleanerhasrun = tk.BooleanVar()
 PorechopSkip = tk.BooleanVar()
 UseAlignment = tk.BooleanVar()
+UseBinary = tk.BooleanVar()
 
 
 root.title("Plastome Pipeline")
@@ -455,6 +460,7 @@ LaunchAlignBrn = tk.Button(pipelineframe, text="Alignment Pipeline", command=Ali
 LaunchAssembleBtn = tk.Button(pipelineframe, text="Assembly Pipeline", command=Assembly).grid(row=1, column=2,padx=5,pady=5)
 AlignmentUseCheckBtn = tk.Checkbutton(pipelineframe,text="Use aligned reads", variable=UseAlignment).grid(row=2, column=2, padx=5, pady=5)
 SkipPorechopCheckBtn = tk.Checkbutton(pipelineframe,text="Skip Porechop", variable=PorechopSkip).grid(row=3, column=2, padx=5, pady=5)
+UseBinariesCheckBtn = tk.Checkbutton(pipelineframe, text="Use C++ binary", variable=UseBinary).grid(row=3, column=0,)
 
 imageLabel = tk.Label(visframe)
 imageLabel.grid(row=2, column=0,)
