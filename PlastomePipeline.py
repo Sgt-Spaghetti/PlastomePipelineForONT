@@ -70,7 +70,8 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
         print("Processing File: " + str(Input_File))
         subprocess.run(["gzip -dk " + (Input_Folder+"/"+Input_File).replace(" ", "\\ ")], shell=True) # Unzip the raw read files
         if UseBinary.get() == True:
-            subprocess.run(["./ATcleaning_linux_binary", str(Input_File), str(Cutoff_Percentage_From), str(Cutoff_Percentage_To), str(Minimum_Read_Length), str(Minimum_Sequence_Quality), str(Output_Folder + "/" + Input_File.rpartition("/")[2][0:-6] + "_AT-cleaned.fastq") ])    
+            subprocess.run(["./ATcleaning_linux_binary " + str(Input_Folder+"/"+Input_File[:-3]).replace(" ", "\\ ") +" "+ str(Cutoff_Percentage_From) +" "+ str(Cutoff_Percentage_To) +" "+ str(Minimum_Read_Length) +" "+ str(Minimum_Sequence_Quality) +" "+ str(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq")], shell=True)
+            os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
         else:
             with open(Input_Folder+"/"+Input_File[:-3]) as file: # Open the file
                 raw_data: list[str] = file.readlines() # Read the file as a list of lines
@@ -93,34 +94,34 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
                         #quality_score: int = statistics.median(sequence_score)
                         quality_score: float = sequence_score/sequence_length
 
-                        if sequence_length >= Minimuim_Read_Length and quality_score >= Minimum_Sequence_Quality:
+                        if sequence_length >= Minimum_Read_Length and quality_score >= Minimum_Sequence_Quality:
                             ATandlengthDistribution.append((at_percentage, sequence_length, quality_score, "-")) # Keep track of the length and AT content of all sequences for data visualisation
 
-                        with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
+                        with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile:
                             logfile.writelines("entry number " + str(Total_Entries) + " AT percentage: " + str(at_percentage) + " Read Length: " + str(sequence_length) + "\n")
 
-                        if at_percentage >= Cutoff_Percentage_From and at_percentage < Cutoff_Percentage_To and sequence_length >= Minimuim_Read_Length and quality_score >= Minimum_Sequence_Quality: # Does the sequence satisfy the plastome constraints?
+                        if at_percentage >= Cutoff_Percentage_From and at_percentage < Cutoff_Percentage_To and sequence_length >= Minimum_Read_Length and quality_score >= Minimum_Sequence_Quality: # Does the sequence satisfy the plastome constraints?
                             Total_Accepted_Bases += sequence_length
-                            with open(Output_Folder + "/" + Input_File.rpartition("/")[2][0:-6] + "_AT-cleaned.fastq", "a") as output:
+                            with open(Output_Folder + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq", "a") as output:
                                 output.writelines(raw_data[location:location+4]) # Write the raw entry to a new file, appending to the end. If the file does not exist, it creates it.
 
-                            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile: # Create a log file entry for debugging purposes
+                            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile: # Create a log file entry for debugging purposes
                                 logfile.writelines("ACCEPTED\n")
 
                             Accepted_Entries += 1 # We have accepted this sequence!
 
                         else: # Otherwise, the constraints were not satisfied
-                            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile: # Log the sequence as rejected
+                            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile: # Log the sequence as rejected
                                 logfile.writelines("REJECTED\n")
 
 
                     location += 1 # Move to the next line
                 os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
-            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-6] + ".txt", "a") as logfile:
+            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile:
                 logfile.writelines("Total Reads: " + str(Total_Entries) + "\n")
                 logfile.writelines("Accepted Reads: " + str(Accepted_Entries) + "\n")
                 logfile.writelines("Percentage of total kept: " + str((Accepted_Entries/Total_Entries)*100) + "\n")
-                logfile.writelines("Output file name: " + Output_Folder + Input_File[0:-6] + "_AT-cleaned.fastq" + "\n\n")
+                logfile.writelines("Output file name: " + Output_Folder + Input_File[0:-9] + "_AT-cleaned.fastq" + "\n\n")
 
     print("------- FINISHED CLEANING ---------")
     print("------- COMPRESSING OUTPUT---------")
