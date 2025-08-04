@@ -70,7 +70,10 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
         print("Processing File: " + str(Input_File))
         subprocess.run(["gzip -dk " + (Input_Folder+"/"+Input_File).replace(" ", "\\ ")], shell=True) # Unzip the raw read files
         if UseBinary.get() == True:
-            subprocess.run(["./ATcleaning_linux_binary " + str(Input_Folder+"/"+Input_File[:-3]).replace(" ", "\\ ") +" "+ str(Cutoff_Percentage_From) +" "+ str(Cutoff_Percentage_To) +" "+ str(Minimum_Read_Length) +" "+ str(Minimum_Sequence_Quality) +" "+ str(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq")], shell=True)
+            if str(Architecture.get()) == "linux x86_64":
+                subprocess.run(["./ATcleaning_linux_x86_64 " + str(Input_Folder+"/"+Input_File[:-3]).replace(" ", "\\ ") +" "+ str(Cutoff_Percentage_From) +" "+ str(Cutoff_Percentage_To) +" "+ str(Minimum_Read_Length) +" "+ str(Minimum_Sequence_Quality) +" "+ str(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq")], shell=True)
+            elif str(Architecture.get()) == "Mac ARMv8.6A":
+                subprocess.run(["./ATcleaning_mac_ARMv8.6A " + str(Input_Folder+"/"+Input_File[:-3]).replace(" ", "\\ ") +" "+ str(Cutoff_Percentage_From) +" "+ str(Cutoff_Percentage_To) +" "+ str(Minimum_Read_Length) +" "+ str(Minimum_Sequence_Quality) +" "+ str(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq")], shell=True)
             os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
         else:
             with open(Input_Folder+"/"+Input_File[:-3]) as file: # Open the file
@@ -405,11 +408,15 @@ ATcleanerhasrun = tk.BooleanVar()
 PorechopSkip = tk.BooleanVar()
 UseAlignment = tk.BooleanVar()
 UseBinary = tk.BooleanVar()
+Architecture = tk.StringVar()
+Architecture.set("linux x86_64")
 
 
 root.title("Plastome Pipeline")
 
 
+titleframe = tk.Frame(root, borderwidth=1, relief="flat", pady=20, padx=20)
+titleframe.grid(column=0, row=0, pady=10, padx=10, columnspan=3)
 inputframe = tk.Frame(root, borderwidth=1, relief="solid", pady=20, padx=20)
 inputframe.grid(column=0, row=1, pady=10, padx=10)
 inputbuttonframe = tk.Frame(inputframe, borderwidth=1, relief="flat", pady=20, padx=20)
@@ -420,7 +427,9 @@ coverageframe = tk.Frame(visframe)
 pipelineframe = tk.Frame(root, borderwidth=1, relief="solid", pady=20, padx=20)
 pipelineframe.grid(column=0, row=2, columnspan=3, pady=10, padx=10)
 
-TitleLabel = tk.Label(root, text="Plastome Pipeline").grid(row=0, column=1, pady=20)
+TitleLabel = tk.Label(titleframe, text="Plastome Pipeline").grid(row=0, column=0, pady=20)
+ArchitectureLabel = tk.Label(titleframe, text="Architecture").grid(row=1, column=0, padx=20)
+ArchitectureSelect = tk.OptionMenu(titleframe, Architecture, *["linux x86_64", "Mac ARMv8.6A"]).grid(row=2, column=0)
 
 inputfolderlabel = tk.Label(inputbuttonframe, text="Select Input Folder:").grid(row=0, column=0, padx=10)
 SelectInput = tk.Button(inputbuttonframe, text="Input Folder", command=OpenInputFolder).grid(row=1, column=0)
