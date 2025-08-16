@@ -5,7 +5,7 @@
 
 using namespace std;
 
-bool CheckReadParameters(const string &Read, const double &ATminimum, const double &ATmaximum, const double &MinimumLength){ // returns true to discard a read, or false to keep it
+bool CheckReadParameters(const string &Read, const int &ATminimum, const int &ATmaximum, const int &MinimumLength){ // returns true to discard a read, or false to keep it
 	const size_t ReadLength{Read.length()};
 	if (ReadLength < MinimumLength){
 		return true;
@@ -13,28 +13,29 @@ bool CheckReadParameters(const string &Read, const double &ATminimum, const doub
 	else {
 		int ReadATcount{0};
 		for (int i=0; i<ReadLength; i++){ // Calculate AT percentage of the sequence
-			if (Read[i] == 'A' || Read[i] == 'T'){
+			if (Read[i] == 'A' || Read[i] == 'T' || Read[i] == 'U'){
 				++ReadATcount;
 			}
 		}
-		const double ReadATPercentage{100.0 * (double(ReadATcount) / double(ReadLength))};
-		if (ReadATPercentage < ATminimum || ReadATPercentage >= ATmaximum){
-			return true;
-		}
-		else {
-			return false;
+                const int ReadATPercentage{int(((double(ReadATcount) / double(ReadLength)) * 100) + 0.5)};
+		// Adding 0.5 allows rounding behaviour when casting
+                if (ReadATPercentage < ATminimum || ReadATPercentage >= ATmaximum){
+					return true;
+				}
+				else {
+					return false;
 		}
 	}
 }
 
-bool CheckReadQuality(const string &ReadQuality, const double &MinimumQualityScore){
+bool CheckReadQuality(const string &ReadQuality, const int &MinimumQualityScore){
 	const int AsciiCodeOffsetForPhredScore{33};
 	const size_t QualityScoreLength{ReadQuality.length()};
 	int Qscore{0};
 	for (int i=0; i<QualityScoreLength; i++){
 		Qscore = Qscore + int(ReadQuality[i]) - AsciiCodeOffsetForPhredScore;
 	}
-	const double Qmean{double(Qscore)/double(QualityScoreLength)};
+	const int Qmean{int((double(Qscore)/double(QualityScoreLength))+0.5)};
 	if (Qmean < MinimumQualityScore){
 		return true;
 	}
@@ -46,10 +47,10 @@ bool CheckReadQuality(const string &ReadQuality, const double &MinimumQualitySco
 int main(int argc, char* argv[]) {
 
 	const string InputFilePath{argv[1]};
-	const double ATmin{atof(argv[2])};
-	const double ATmax{atof(argv[3])};
-	const double LengthMin{atof(argv[4])};
-	const double QualityMin{atof(argv[5])};
+	const int ATmin{atoi(argv[2])};
+	const int ATmax{atoi(argv[3])};
+	const int LengthMin{atoi(argv[4])};
+	const int QualityMin{atoi(argv[5])};
 	const string OutputFilePath{argv[6]};
 	
 	const int LinesPerEntry{4};
