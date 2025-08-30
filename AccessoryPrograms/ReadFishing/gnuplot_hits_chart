@@ -1,0 +1,69 @@
+set datafile separator ","
+
+set term qt 0 size 1980,1080
+set key
+
+set style fill solid 1
+
+set xlabel "chromosome loc."
+set ylabel "n. hits"
+
+plot "chromosome_mapping_output.csv" using 2:3 with boxes title "Chromosome 1" linecolor "black", \
+"chromosome_mapping_output.csv" using 4:5 with boxes title "Chromosome 2" linecolor "dark-grey",  \
+"chromosome_mapping_output.csv" using 6:7 with boxes title "Chromosome 3" linecolor "red",  \
+"chromosome_mapping_output.csv" using 8:9 with boxes title "Chromosome 4" linecolor "web-green",  \
+"chromosome_mapping_output.csv" using 10:11 with boxes title "Chromosome 5" linecolor "web-blue",  \
+"chromosome_mapping_output.csv" using 12:13 with boxes title "Chromosome 6" linecolor "dark-magenta",  \
+"chromosome_mapping_output.csv" using 14:15 with boxes title "Chromosome 7" linecolor "dark-cyan",  \
+"chromosome_mapping_output.csv" using 16:17 with boxes title "Chromosome 8" linecolor "dark-yellow",  \
+"chromosome_mapping_output.csv" using 18:19 with boxes title "Chromosome 9" linecolor "dark-plum",  \
+"chromosome_mapping_output.csv" using 20:21 with boxes title "Chromosome 10" linecolor "goldenrod",  \
+"chromosome_mapping_output.csv" using 22:23 with boxes title "Chromosome 11" linecolor "dark-spring-green",  \
+"chromosome_mapping_output.csv" using 24:25 with boxes title "Chromosome 12" linecolor "purple",  \
+"chromosome_mapping_output.csv" using 26:27 with boxes title "Chromosome 13" linecolor "steelblue",  \
+"chromosome_mapping_output.csv" using 28:29 with boxes title "Chromosome 14" linecolor "dark-red",  \
+"chromosome_mapping_output.csv" using 30:31 with boxes title "Chromosome 15" linecolor "orchid",  \
+"chromosome_mapping_output.csv" using 32:33 with boxes title "Chromosome 16" linecolor "sienna1",  \
+"chromosome_mapping_output.csv" using 34:35 with boxes title "Chromosome 17" linecolor "chartreuse" 
+
+
+set term qt 1 size 1980,1080
+
+set xlabel "chromosome loc. (x10^6)"
+set multiplot layout 4,5
+unset key
+
+set title "chromosome 1"
+plot "chromosome_mapping_output.csv" using ($2/1000000):3 with boxes linecolor black title "Chromosome 1"
+set title "chromosome 2"
+plot "chromosome_mapping_output.csv" using ($4/1000000):5 with boxes linecolor black title "Chromosome 2"
+set title "chromosome 3"
+plot "chromosome_mapping_output.csv" using ($6/1000000):7 with boxes linecolor black title "Chromosome 3"
+set title "chromosome 4"
+plot "chromosome_mapping_output.csv" using ($8/1000000):9 with boxes linecolor black title "Chromosome 4"
+set title "chromosome 5"
+plot "chromosome_mapping_output.csv" using ($10/1000000):11 with boxes linecolor black title "Chromosome 5"
+set title "chromosome 6"
+plot "chromosome_mapping_output.csv" using ($12/1000000):13 with boxes linecolor black title "Chromosome 6"
+set title "chromosome 7"
+plot "chromosome_mapping_output.csv" using ($14/1000000):15 with boxes linecolor black title "Chromosome 7"
+set title "chromosome 8"
+plot "chromosome_mapping_output.csv" using ($16/1000000):17 with boxes linecolor black title "Chromosome 8"
+set title "chromosome 9"
+plot "chromosome_mapping_output.csv" using ($18/1000000):19 with boxes linecolor black title "Chromosome 9"
+set title "chromosome 10"
+plot "chromosome_mapping_output.csv" using ($20/1000000):21 with boxes linecolor black title "Chromosome 10"
+set title "chromosome 11"
+plot "chromosome_mapping_output.csv" using ($22/1000000):23 with boxes linecolor black title "Chromosome 11"
+set title "chromosome 12"
+plot "chromosome_mapping_output.csv" using ($24/1000000):25 with boxes linecolor black title "Chromosome 12"
+set title "chromosome 13"
+plot "chromosome_mapping_output.csv" using ($26/1000000):27 with boxes linecolor black title "Chromosome 13"
+set title "chromosome 14"
+plot "chromosome_mapping_output.csv" using ($28/1000000):29 with boxes linecolor black title "Chromosome 14"
+set title "chromosome 15"
+plot "chromosome_mapping_output.csv" using ($30/1000000):31 with boxes linecolor black title "Chromosome 15"
+set title "chromosome 16"
+plot "chromosome_mapping_output.csv" using ($32/1000000):33 with boxes linecolor black title "Chromosome 16"
+set title "chromosome 17"
+plot "chromosome_mapping_output.csv" using ($34/1000000):35 with boxes linecolor black title "Chromosome 17"

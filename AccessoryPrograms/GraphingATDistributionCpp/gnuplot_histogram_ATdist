@@ -1,0 +1,30 @@
+# plot a histogram from preprocessed AT distribution data in gnuplot
+# run with "gnuplot -p -c gnuplot_histogram *ATmin* *ATmax* *path to data file*"
+# the datafile should be a csv of two colums, a precalculated histogram of read AT percentages
+# A c++ script is provided to produce the histogram from the output of ATcleaner (SequenceDataDistribution.csv)
+
+set terminal pngcairo enhanced font 'Helvetica, 20' size 640*2,480*2
+set output "gnuplot_output.png"
+
+set datafile separator ","
+unset key
+
+set xrange [0:100]
+set ylabel "Frequency Density (cumulative read lengths)"
+set xlabel "Read AT percentage (%)"
+set title "AT percentage distribution of reads"
+
+set object 1 rectangle from 0, graph 0 to ARG1, graph 1 behind
+set object 1 rectangle fillcolor "red" fillstyle solid 0.2 noborder
+set object 2 rectangle from ARG1, graph 0 to ARG2, graph 1 behind
+set object 2 rectangle fillcolor "green" fillstyle solid 0.2 noborder
+set object 3 rectangle from ARG2, graph 0 to 100, graph 1 behind
+set object 3 rectangle fillcolor "red" fillstyle solid 0.2 noborder
+
+stats ARG3 using 1:2 nooutput
+
+set arrow from ARG1, graph 0 to ARG1, graph 1 front nohead dashtype 2
+set arrow from ARG2, graph 0 to ARG2, graph 1 front nohead dashtype 2
+#set label "Acceptance Threshold" at ARG1+2, STATS_max_y*1.1
+
+plot ARG3  using ($1-0.5):2 with boxes fillcolor "grey" fillstyle solid border linecolor "black"
