@@ -242,6 +242,8 @@ def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str, FlyeParameters
             subprocess.run(["porechop -i " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.fastq.gz" + " -o " + Output_Folder.replace(" ", "\\ ")+"/concatenated_porechop_cleaned.fastq.gz"], shell=True)
         else: # Else, simply copy the previously extracted aligned reads to a new location
             subprocess.run(["cp "+Output_Folder.replace(" ", "\\ ")+"/mapped_primaries.fastq.gz "+ Output_Folder.replace(" ", "\\ ")+"/concatenated_porechop_cleaned.fastq.gz"], shell=True)
+    	os.remove(Output_Folder+"/mapped_primaries.bam")
+    	os.remove(Output_Folder+"/mapped_primaries.fastq.gz")
     else: # If we are not using the prevously aligned reads (default)
         if PorechopSkip.get() == False: # If we are NOT skipping porechop
             for file in os.listdir(Input_Folder):
@@ -254,8 +256,6 @@ def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str, FlyeParameters
     subprocess.run(["flye --nano-hq " + Output_Folder.replace(" ", "\\ ") + "/concatenated_porechop_cleaned.fastq.gz --out-dir " + Output_Folder.replace(" ", "\\ ") + "/FlyeOutput " + FlyeParameters], shell=True)
     shutil.rmtree(Output_Folder+"/PorechopCleaned")
     os.remove(Output_Folder+"/concatenated_porechop_cleaned.fastq.gz")
-    os.remove(Output_Folder+"/mapped_primaries.bam")
-    os.remove(Output_Folder+"/mapped_primaries.fastq.gz")
     
     if ReferenceGenomePath != "":
         subprocess.run(["minimap2 -ax map-ont " + ReferenceGenomePath.replace(" ", "\\ ") + " " + Output_Folder.replace(" ", "\\ ")+ "/FlyeOutput/assembly.fasta" + " > " + Output_Folder.replace(" ", "\\ ") + "/AlignmentCheck/alignment.sam"], shell=True)
@@ -267,7 +267,6 @@ def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str, FlyeParameters
 
         os.remove(Output_Folder+"/AlignmentCheck/alignment.sam")
         os.remove(Output_Folder+"/AlignmentCheck/alignment.bam")
-
 
 
 def CheckDataDistribution(Input_Folder: str, Output_folder:str, entry, atmin, atmax, minlength, minquality):
