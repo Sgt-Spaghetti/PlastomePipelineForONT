@@ -61,9 +61,7 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
     repeat until end
     '''
 
-    Total_Entries: int = 0 # How many total reads
     Total_Accepted_Bases: int = 0 # how many bases have we got in our data?
-    Accepted_Entries: int = 0 # How any chloroplast reads have we kept?
     print("------- STARTED CLEANING ---------")
 
     for Input_File in os.listdir(str(Input_Folder)):
@@ -76,55 +74,85 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
                 subprocess.run(["./ATcleaning_mac_ARMv8.6A " + str(Input_Folder+"/"+Input_File[:-3]).replace(" ", "\\ ") +" "+ str(Cutoff_Percentage_From) +" "+ str(Cutoff_Percentage_To) +" "+ str(Minimum_Read_Length) +" "+ str(Minimum_Sequence_Quality) +" "+ str(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq")], shell=True)
             os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
         else:
-            with open(Input_Folder+"/"+Input_File[:-3]) as file: # Open the file
+            with open(Input_Folder +"/"+Input_File[:-3]) as file: # Open the file
+                Total_Entries: int = 0 # How many total reads
+                Accepted_Entries: int = 0 # How any chloroplast reads have we kept?
+                Accepted_Reads: list[str] = []
+                current_entry: list[str] = ["","","",""]
                 raw_data: list[str] = file.readlines() # Read the file as a list of lines
                 location: int = 0 # Keep track of which line in the file I am
+                keep_read: bool = True
+                lines_per_read: int  = 4
+
+                at_percentage: float = 0.0
+                sequence_length: int = 0
+
                 for line in raw_data: # For each line
-                    if line[0] == "@" and (raw_data[location+1][0] != "@"): # Does it start with an identifier of a new read?
-                        Total_Entries += 1 # Increase total reads by 1
-                        sequence: str = raw_data[location+1] # look at the next line, this is the sequence!
-                        sequence_length: int = 0 # keep track of total length of sequence
-                        at_content: int = 0 # Keep track of the number of Adenines or Thymines encountered
-                        #sequence_score: list[int] = []# Keep track of the cumulative per-base Phred scores.
-                        sequence_score: int = 0# Keep track of the cumulative per-base Phred scores.
-                        for position, base in enumerate(sequence):
-                            #sequence_score.append(ord(raw_data[location+3][position]) - 33) # Phred score is ascii code - 33
-                            sequence_score += ord(raw_data[location+3][position]) - 33 # Phred score is ascii code - 33
-                            sequence_length += 1
-                            if base == "A" or base == "T" or base == "U":
-                                at_content += 1
-                        at_percentage: float = (at_content/sequence_length) * 100
-                        #quality_score: int = statistics.median(sequence_score)
-                        quality_score: float = sequence_score/sequence_length
+                    
+                    if location < lines_per_read - 1:
 
-                        if sequence_length >= Minimum_Read_Length and quality_score >= Minimum_Sequence_Quality:
-                            ATandlengthDistribution.append((at_percentage, sequence_length, quality_score, "-")) # Keep track of the length and AT content of all sequences for data visualisation
+                        current_entry[location] = line
 
-                        with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile:
-                            logfile.writelines("entry number " + str(Total_Entries) + " AT percentage: " + str(at_percentage) + " Read Length: " + str(sequence_length) + "\n")
+                        if location == 1: # location of the sequence
+                            sequence: str = line.rstrip()
+                            sequence_length = len(sequence)
 
-                        if at_percentage >= Cutoff_Percentage_From and at_percentage < Cutoff_Percentage_To and sequence_length >= Minimum_Read_Length and quality_score >= Minimum_Sequence_Quality: # Does the sequence satisfy the plastome constraints?
-                            Total_Accepted_Bases += sequence_length
-                            with open(Output_Folder + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq", "a") as output:
-                                output.writelines(raw_data[location:location+4]) # Write the raw entry to a new file, appending to the end. If the file does not exist, it creates it.
+                            if sequence_length < Minimum_Read_Length:
+                                keep_read = False
+                            else:
+                                keep_read = True
+                                at_content: int = 0 # Keep track of the number of Adenines or Thymines encountered
+                                for base in sequence:
+                                    if base == "A" or base == "T" or base == "U":
+                                        at_content += 1
+                                at_percentage = (at_content/sequence_length) * 100
+                                if at_percentage < Cutoff_Percentage_From or at_percentage >= Cutoff_Percentage_To:
+                                    keep_read = False
+                                else: keep_read = True
+                        location += 1
+                    else: # We are at location 4, sequence quality score
+                        current_entry[location]: str = line
+                        qscore_sequence: str = line.rstrip()
+                        if keep_read == True:
+                            cumulative_quality_score: int = 0
+                            for score in qscore_sequence:
+                                cumulative_quality_score += ord(score) - 33 # Phred score is ascii code - 33
+                            Qmean: int =  int((cumulative_quality_score / sequence_length)+0.5)
+                            if Qmean < Minimum_Sequence_Quality:
+                                keep_read = False
 
-                            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile: # Create a log file entry for debugging purposes
-                                logfile.writelines("ACCEPTED\n")
+                            else:
+                                keep_read = True
+                                Accepted_Entries += 1 # We have accepted this sequence!
+                                for e in current_entry:
+                                    Accepted_Reads.append(e)
+                                ATandlengthDistribution.append((at_percentage, sequence_length, Qmean, "-")) # Keep track of the length and AT content of all sequences for data visualisation
+                                Total_Accepted_Bases += sequence_length
+                        
+                        Total_Entries += 1 
+                        location = 0
 
-                            Accepted_Entries += 1 # We have accepted this sequence!
+                if Accepted_Entries > 0:
+                    with open(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq", "w") as output_file:
+                        for r in Accepted_Reads:
+                            output_file.write(r)
+                    with open(Output_Folder.replace(" ", "\\ ")+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "w") as logfile:
+                        logfile.writelines("Total Reads: " + str(Total_Entries) + "\n")
+                        logfile.writelines("Accepted Reads: " + str(Accepted_Entries) + "\n")
+                        logfile.writelines("Percentage of total kept: " + str((Accepted_Entries/Total_Entries)*100) + "\n")
+                        logfile.writelines("Output file name: " + Output_Folder + Input_File[0:-9] + "_AT-cleaned.fastq" + "\n\n")
 
-                        else: # Otherwise, the constraints were not satisfied
-                            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile: # Log the sequence as rejected
-                                logfile.writelines("REJECTED\n")
+                    '''
+                                with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile:
+                                    logfile.writelines("entry number " + str(Total_Entries) + " AT percentage: " + str(at_percentage) + " Read Length: " + str(sequence_length) + "\n")
+                                    with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile: # Create a log file entry for debugging purposes
+                                        logfile.writelines("ACCEPTED\n")
+                            else: # Otherwise, the constraints were not satisfied
+                                with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile: # Log the sequence as rejected
+                                    logfile.writelines("REJECTED\n")
+                    '''
 
-
-                    location += 1 # Move to the next line
                 os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
-            with open(Output_Folder+"/ATCLEANER_LOG_"+Input_File.rpartition("/")[2][0:-9] + ".txt", "a") as logfile:
-                logfile.writelines("Total Reads: " + str(Total_Entries) + "\n")
-                logfile.writelines("Accepted Reads: " + str(Accepted_Entries) + "\n")
-                logfile.writelines("Percentage of total kept: " + str((Accepted_Entries/Total_Entries)*100) + "\n")
-                logfile.writelines("Output file name: " + Output_Folder + Input_File[0:-9] + "_AT-cleaned.fastq" + "\n\n")
 
     print("------- FINISHED CLEANING ---------")
     print("------- COMPRESSING OUTPUT---------")
@@ -187,7 +215,7 @@ def PlastomeAlignment(ReferenceGenomePath: str, OutputFolder: str):
     os.remove(Output_Folder+"/alignment.bam")
     os.remove(Output_Folder+"/alignment.sam")
 
-def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str):
+def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str, FlyeParameters: str):
     ReferenceGenomePath = os.fspath(ReferenceGenomePath)
     if OutputFolder == "":
         Output_Folder: str = os.fspath(current_directory + "/PlastomeDeNovoAssemblyOutput")# name of output directory
@@ -223,7 +251,7 @@ def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str):
         else:
             subprocess.run(["cat "+Input_Folder.replace(" ", "\\ ")+"/*.fastq.gz > "+ Output_Folder.replace(" ", "\\ ")+"/concatenated_porechop_cleaned.fastq.gz"], shell=True)
 
-    subprocess.run(["flye --nano-hq " + Output_Folder.replace(" ", "\\ ") + "/concatenated_porechop_cleaned.fastq.gz --out-dir " + Output_Folder.replace(" ", "\\ ") + "/FlyeOutput --genome-size 0.0002g -i 3"], shell=True)
+    subprocess.run(["flye --nano-hq " + Output_Folder.replace(" ", "\\ ") + "/concatenated_porechop_cleaned.fastq.gz --out-dir " + Output_Folder.replace(" ", "\\ ") + "/FlyeOutput " + FlyeParameters], shell=True)
     shutil.rmtree(Output_Folder+"/PorechopCleaned")
     os.remove(Output_Folder+"/concatenated_porechop_cleaned.fastq.gz")
     os.remove(Output_Folder+"/mapped_primaries.bam")
@@ -317,14 +345,14 @@ def DataVisualisation(input_file, Output_Folder): # Plot a nice graph of AT dist
 
     thresholds = np.arange(0,101,1) # Custom histogram X axis
 
-    ATbins = np.zeros(100)
+    #ATbins = np.zeros(100)
     Lengthbins = np.zeros(100)
 
     for index, value in enumerate(at_percentages):
         for t in thresholds: # from 0 to 100 % AT
             if t < 100:
                 if (value < t) and (value >= t-1): # if AT% of sequence is less then the upper limit but greater then the lower limit (prior bin)
-                    ATbins[t] += 1 # Add one member to this AT% bin
+                    #ATbins[t] += 1 # Add one member to this AT% bin
                     Lengthbins[t] += sequence_length[index] # Add up the total number of bases in this bin!
                     break # Get out of loop checking bins, move on to next sequence
 
@@ -336,7 +364,7 @@ def DataVisualisation(input_file, Output_Folder): # Plot a nice graph of AT dist
     ax.axvspan(float(ATmin.get()), float(ATmax.get()), alpha=0.2, color="green")
     ax.axvline(x=float(ATmin.get()), color="black", ls="--", label="Plastome\nThreshold")
 
-    ax.bar(thresholds[:-1], ATbins*Lengthbins, width=1, color="royalblue")
+    ax.bar(thresholds[:-1], Lengthbins, width=1, color="royalblue")
 
     ax.set_ylabel("Frequency Density times Length of read", family="serif")
     ax.set_xlabel("AT percentage of read", family="serif")
@@ -372,7 +400,7 @@ def Assembly():
     if ATcleanerhasrun.get() == False:
         Clean()
     print("-------- STARTING ASSEMBLY ---------") 
-    PlastomeAssemble(input_settings["genomepath"],input_settings["outputdir"])
+    PlastomeAssemble(input_settings["genomepath"],input_settings["outputdir"], FlyeParams.get())
     print("-------- FINISHED ASSEMBLY ---------") 
 
 def OpenInputFolder():
@@ -410,7 +438,8 @@ UseAlignment = tk.BooleanVar()
 UseBinary = tk.BooleanVar()
 Architecture = tk.StringVar()
 Architecture.set("linux x86_64")
-
+FlyeParams = tk.StringVar()
+FlyeParams.set("--genome-size 0.0002g --asm-coverage 50 -i 3")
 
 root.title("Plastome Pipeline")
 
@@ -468,8 +497,9 @@ LaunchCleanBtn = tk.Button(pipelineframe, text="ATCleaner", command=Clean).grid(
 CleanCheckBtn = tk.Checkbutton(pipelineframe, text="Has AT cleaner run?", variable=ATcleanerhasrun).grid(row=2, column=0,padx=10)
 LaunchAlignBrn = tk.Button(pipelineframe, text="Alignment Pipeline", command=Alignment).grid(row=1, column=1,padx=5,pady=5)
 LaunchAssembleBtn = tk.Button(pipelineframe, text="Assembly Pipeline", command=Assembly).grid(row=1, column=2,padx=5,pady=5)
-AlignmentUseCheckBtn = tk.Checkbutton(pipelineframe,text="Use aligned reads", variable=UseAlignment).grid(row=2, column=2, padx=5, pady=5)
-SkipPorechopCheckBtn = tk.Checkbutton(pipelineframe,text="Skip Porechop", variable=PorechopSkip).grid(row=3, column=2, padx=5, pady=5)
+FlyOpts = tk.Entry(pipelineframe, textvariable=FlyeParams).grid(row=2, column=2, padx=5, pady=5)
+AlignmentUseCheckBtn = tk.Checkbutton(pipelineframe,text="Use aligned reads", variable=UseAlignment).grid(row=3, column=2, padx=5, pady=5)
+SkipPorechopCheckBtn = tk.Checkbutton(pipelineframe,text="Skip Porechop", variable=PorechopSkip).grid(row=4, column=2, padx=5, pady=5)
 UseBinariesCheckBtn = tk.Checkbutton(pipelineframe, text="Use C++ binary", variable=UseBinary).grid(row=3, column=0,)
 
 imageLabel = tk.Label(visframe)
