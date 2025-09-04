@@ -206,7 +206,7 @@ def PlastomeAlignment(ReferenceGenomePath: str, OutputFolder: str):
 
     subprocess.run(["minimap2 -ax map-ont " + ReferenceGenomePath.replace(" ", "\\ ") + " " + Input_Folder.replace(" ", "\\ ") + "/*.fastq.gz" + " > " + Output_Folder.replace(" ", "\\ ") + "/alignment.sam"], shell=True)
 
-    subprocess.run(["samtools", "view", "-@", "n", "-Sb", "-o", Output_Folder+"/alignment.bam", Output_Folder+"/alignment.sam"])
+    subprocess.run(["samtools", "view", "-b", "-o", Output_Folder+"/alignment.bam", Output_Folder+"/alignment.sam"])
 
     subprocess.run(["samtools", "sort", "-O", "bam", "-o", Output_Folder+"/sorted_alignment.bam", Output_Folder+"/alignment.bam"])
 
@@ -235,15 +235,15 @@ def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str, FlyeParameters
         os.makedirs(Output_Folder+"/PorechopCleaned")
 
     if UseAlignment.get() == True:
-        subprocess.run(["samtools view -bF 0x900 -q 1 " + os.path.split(Output_Folder)[0].replace(" ", "\\ ")+"/PlastomeAlignmentOutput/sorted_alignment.bam > " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.bam"], shell=True)
+        subprocess.run(["samtools view -bF 0x800" + os.path.split(Output_Folder)[0].replace(" ", "\\ ")+"/PlastomeAlignmentOutput/sorted_alignment.bam > " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.bam"], shell=True)
         subprocess.run(["samtools fastq " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.bam > " +Output_Folder.replace(" ", "\\ ") +"/mapped_primaries.fastq"], shell=True)
         subprocess.run(["gzip " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.fastq"], shell=True)
         if PorechopSkip.get() == False: # If we ARE running porechop, run it on the concatenated aligned reads extracted previously.
             subprocess.run(["porechop -i " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.fastq.gz" + " -o " + Output_Folder.replace(" ", "\\ ")+"/concatenated_porechop_cleaned.fastq.gz"], shell=True)
         else: # Else, simply copy the previously extracted aligned reads to a new location
             subprocess.run(["cp "+Output_Folder.replace(" ", "\\ ")+"/mapped_primaries.fastq.gz "+ Output_Folder.replace(" ", "\\ ")+"/concatenated_porechop_cleaned.fastq.gz"], shell=True)
-    	os.remove(Output_Folder+"/mapped_primaries.bam")
-    	os.remove(Output_Folder+"/mapped_primaries.fastq.gz")
+        os.remove(Output_Folder+"/mapped_primaries.bam")
+        os.remove(Output_Folder+"/mapped_primaries.fastq.gz")
     else: # If we are not using the prevously aligned reads (default)
         if PorechopSkip.get() == False: # If we are NOT skipping porechop
             for file in os.listdir(Input_Folder):
@@ -259,7 +259,7 @@ def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str, FlyeParameters
     
     if ReferenceGenomePath != "":
         subprocess.run(["minimap2 -ax map-ont " + ReferenceGenomePath.replace(" ", "\\ ") + " " + Output_Folder.replace(" ", "\\ ")+ "/FlyeOutput/assembly.fasta" + " > " + Output_Folder.replace(" ", "\\ ") + "/AlignmentCheck/alignment.sam"], shell=True)
-        subprocess.run(["samtools", "view", "-@", "n", "-Sb", "-o", Output_Folder+"/AlignmentCheck/alignment.bam", Output_Folder+"/AlignmentCheck/alignment.sam"])
+        subprocess.run(["samtools", "view", "-b", "-o", Output_Folder+"/AlignmentCheck/alignment.bam", Output_Folder+"/AlignmentCheck/alignment.sam"])
 
         subprocess.run(["samtools", "sort", "-O", "bam", "-o", Output_Folder+"/AlignmentCheck/sorted_alignment.bam", Output_Folder+"/AlignmentCheck/alignment.bam"])
 
