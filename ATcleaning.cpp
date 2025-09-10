@@ -105,10 +105,12 @@ int main(int argc, char* argv[]) {
 	ifstream InputFile(InputFilePath);
 
 	string *LineInFile = new string();
+	LineInFile -> reserve (60000);
 
 	Entry * pnew_entry = new Entry();
 
 	while (getline(InputFile, *LineInFile)){
+		LineInFile -> shrink_to_fit();
 		if (PointInEntry<LinesPerEntry-1){
 			if (PointInEntry == 0){
 				 pnew_entry -> set_name(LineInFile);
