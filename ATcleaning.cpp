@@ -149,6 +149,7 @@ int main(int argc, char* argv[]) {
 	for (int i=0; i < EntriesToKeep.size(); i++){
 		OutputFile << EntriesToKeep[i] << "\n";
 	}
+	OutputFile.flush();
 	OutputFile.close();
 
 
