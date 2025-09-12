@@ -45,8 +45,7 @@ class Entry {
 		}
 };
 
-bool CheckReadParameters(const string &Read, const int &ATminimum, const int &ATmaximum, const int &MinimumLength){ // returns true to discard a read, or false to keep it
-	const unsigned int ReadLength = Read.length();
+bool CheckReadParameters(const string &Read, const int ATminimum, const int ATmaximum, const int MinimumLength, const unsigned int ReadLength){ // returns true to discard a read, or false to keep it
 	if (ReadLength < MinimumLength){
 		return true;
 	}
@@ -69,9 +68,8 @@ bool CheckReadParameters(const string &Read, const int &ATminimum, const int &AT
 	}
 }
 
-bool CheckReadQuality(const string &ReadQuality, const int &MinimumQualityScore){
+bool CheckReadQuality(const string &ReadQuality, const int MinimumQualityScore, const unsigned int QualityScoreLength){
 	const int AsciiCodeOffsetForPhredScore = 33;
-	const unsigned int QualityScoreLength = ReadQuality.length();
 	unsigned int Qscore = 0;
 	for (unsigned int i=0; i<QualityScoreLength; i++){
 		Qscore = Qscore + int(ReadQuality[i]) - AsciiCodeOffsetForPhredScore;
@@ -87,18 +85,18 @@ bool CheckReadQuality(const string &ReadQuality, const int &MinimumQualityScore)
 
 int main(int argc, char* argv[]) {
 
-	const string InputFilePath{argv[1]};
-	const int ATmin{atoi(argv[2])};
-	const int ATmax{atoi(argv[3])};
-	const int LengthMin{atoi(argv[4])};
-	const int QualityMin{atoi(argv[5])};
-	const string OutputFilePath{argv[6]};
+	const string InputFilePath = argv[1];
+	const int ATmin = atoi(argv[2]);
+	const int ATmax = atoi(argv[3]);
+	const int LengthMin = atoi(argv[4]);
+	const int QualityMin = atoi(argv[5]);
+	const string OutputFilePath = argv[6];
 	
-	const int LinesPerEntry{4};
-	int PointInEntry{0};
+	const int LinesPerEntry = 4;
+	int PointInEntry = 0;
 
-	const int LocationOfSequence{1};
-	bool DiscardEntry{false};
+	const int LocationOfSequence = 1;
+	bool DiscardEntry = false;
 
 	ifstream InputFile(InputFilePath);
 
@@ -107,6 +105,8 @@ int main(int argc, char* argv[]) {
 
 	Entry * pnew_entry = new Entry();
 
+	unsigned int SequenceLength = 0;
+
 	while (getline(InputFile, *LineInFile)){
 		LineInFile -> shrink_to_fit();
 		if (PointInEntry<LinesPerEntry-1){
@@ -114,19 +114,18 @@ int main(int argc, char* argv[]) {
 				 pnew_entry -> set_name(LineInFile);
 			} else if (PointInEntry == 1){
 				pnew_entry -> set_sequence(LineInFile);
+				SequenceLength = (*(pnew_entry -> get_sequence())).length(); 
+				DiscardEntry = CheckReadParameters(*(pnew_entry -> get_sequence()), ATmin, ATmax, LengthMin, SequenceLength);
 			} else if (PointInEntry == 2){
 				pnew_entry -> set_adapter(LineInFile);
 			}
 
-			if (PointInEntry == LocationOfSequence){
-				DiscardEntry = CheckReadParameters(*(pnew_entry -> get_sequence()), ATmin, ATmax, LengthMin);
-			}
 			++PointInEntry;
 		}
 		else { // We are in the last section of the entry, prepare reset
-			pnew_entry -> set_quality(LineInFile); // We are at the quality score!
-			if (DiscardEntry == false){ // It has passed the AT etc checks
-				if (CheckReadQuality(*(pnew_entry -> get_quality()), QualityMin) == false){ // Can it pass the quality score check?
+			if (DiscardEntry == false){
+				pnew_entry -> set_quality(LineInFile); // We are at the quality score!
+				if (CheckReadQuality(*(pnew_entry -> get_quality()), QualityMin, SequenceLength) == false){ // Can it pass the quality score check?
 				
 					ofstream OutputFile(OutputFilePath, std::ios_base::app);
 					OutputFile << *(pnew_entry -> get_name()) << "\n";
@@ -138,6 +137,7 @@ int main(int argc, char* argv[]) {
 					OutputFile.close();
 				}
 			}
+			SequenceLength = 0;
 			PointInEntry = 0;
 			delete pnew_entry;
 			Entry * pnew_entry = new Entry();
