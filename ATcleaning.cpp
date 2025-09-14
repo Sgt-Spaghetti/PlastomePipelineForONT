@@ -14,10 +14,10 @@ class Entry {
 		
 	public:
 		~Entry(){
-			if(pread_name!=NULL)  delete pread_name;
-			if(pread_sequence!=NULL)  delete pread_sequence;
-			if(pread_adapter!=NULL) delete pread_adapter;
-			if(pread_quality!=NULL) delete pread_quality;
+			if(pread_name!=NULL)  {delete pread_name;}
+			if(pread_sequence!=NULL)  {delete pread_sequence;}
+			if(pread_adapter!=NULL) {delete pread_adapter;}
+			if(pread_quality!=NULL) {delete pread_quality;}
 		}
 		void set_name(string * n){
 			pread_name = n;
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 
 	ifstream InputFile(InputFilePath);
 
-	string *LineInFile = new string();
+	string * LineInFile = new string();
 	LineInFile -> reserve (60000);
 
 	Entry * pnew_entry = new Entry();
@@ -122,15 +122,15 @@ int main(int argc, char* argv[]) {
 			++PointInEntry;
 		}
 		else { // We are in the last section of the entry, prepare reset
+			pnew_entry -> set_quality(LineInFile); // We are at the quality score!
 			if (DiscardEntry == false){
-				pnew_entry -> set_quality(LineInFile); // We are at the quality score!
 				if (CheckReadQuality(*(pnew_entry -> get_quality()), QualityMin, SequenceLength) == false){ // Can it pass the quality score check?
 				
 					ofstream OutputFile(OutputFilePath, std::ios_base::app);
 					OutputFile << *(pnew_entry -> get_name()) << "\n";
 					OutputFile << *(pnew_entry -> get_sequence()) << "\n";
 					OutputFile << *(pnew_entry -> get_adapter()) << "\n";
-					OutputFile << *(pnew_entry -> get_quality()) << "\n";;
+					OutputFile << *(pnew_entry -> get_quality()) << "\n";
 	
 					OutputFile.flush();
 					OutputFile.close();
