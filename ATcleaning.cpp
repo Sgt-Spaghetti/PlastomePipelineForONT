@@ -146,6 +146,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	InputFile.close();
+	delete pnew_entry;
+	delete LineInFile;
 
 	return 0;	
 }
