@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
 			SequenceLength = 0;
 			PointInEntry = 0;
 			delete pnew_entry;
-			Entry * pnew_entry = new Entry();
+			pnew_entry = new Entry();
 		}
 	LineInFile = new string();
 	LineInFile -> reserve(60000);
