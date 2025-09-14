@@ -117,7 +117,7 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
                             cumulative_quality_score: int = 0
                             for score in qscore_sequence:
                                 cumulative_quality_score += ord(score) - 33 # Phred score is ascii code - 33
-                            Qmean: int =  int((cumulative_quality_score / sequence_length)+0.5)
+                            Qmean =  cumulative_quality_score / sequence_length
                             if Qmean < Minimum_Sequence_Quality:
                                 keep_read = False
 
