@@ -57,8 +57,7 @@ bool CheckReadParameters(const string &Read, const int ATminimum, const int ATma
 				++ReadATcount;
 			}
 		}
-                const unsigned int ReadATPercentage = (unsigned int)(((double(ReadATcount) / double(ReadLength)) * 100) + 0.5);
-		// Adding 0.5 allows rounding behaviour when casting
+                const double ReadATPercentage = (double(ReadATcount) / double(ReadLength)) * 100;
                 if (ReadATPercentage < ATminimum || ReadATPercentage >= ATmaximum){
 					return true;
 				}
@@ -74,7 +73,7 @@ bool CheckReadQuality(const string &ReadQuality, const int MinimumQualityScore, 
 	for (unsigned int i=0; i<QualityScoreLength; i++){
 		Qscore = Qscore + int(ReadQuality[i]) - AsciiCodeOffsetForPhredScore;
 	}
-	const int Qmean = int((double(Qscore)/double(QualityScoreLength))+0.5);
+	const double Qmean = double(Qscore)/double(QualityScoreLength);
 	if (Qmean < MinimumQualityScore){
 		return true;
 	}
