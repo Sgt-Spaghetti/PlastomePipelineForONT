@@ -260,8 +260,8 @@ def PlastomeAssemble(ReferenceGenomePath: tuple, OutputFolder: str, FlyeParamete
     shutil.rmtree(Output_Folder+"/PorechopCleaned")
     os.remove(Output_Folder+"/concatenated_porechop_cleaned.fastq.gz")
     
-    if ReferenceGenomePath != "":
-        subprocess.run(["minimap2 -ax map-ont " + ReferenceGenomePath.replace(" ", "\\ ") + " " + Output_Folder.replace(" ", "\\ ")+ "/FlyeOutput/assembly.fasta" + " > " + Output_Folder.replace(" ", "\\ ") + "/AlignmentCheck/alignment.sam"], shell=True)
+    if ReferenceGenomePath != ():
+        subprocess.run(["minimap2 -ax map-ont " + reference.replace(" ", "\\ ") + " " + Output_Folder.replace(" ", "\\ ")+ "/FlyeOutput/assembly.fasta" + " > " + Output_Folder.replace(" ", "\\ ") + "/AlignmentCheck/alignment.sam"], shell=True)
         subprocess.run(["samtools", "view", "-b", "-o", Output_Folder+"/AlignmentCheck/alignment.bam", Output_Folder+"/AlignmentCheck/alignment.sam"])
 
         subprocess.run(["samtools", "sort", "-O", "bam", "-o", Output_Folder+"/AlignmentCheck/sorted_alignment.bam", Output_Folder+"/AlignmentCheck/alignment.bam"])
