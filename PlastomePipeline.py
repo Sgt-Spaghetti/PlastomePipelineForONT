@@ -72,6 +72,8 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
                 subprocess.run(["./ATcleaning_linux_x86_64 " + str(Input_Folder+"/"+Input_File[:-3]).replace(" ", "\\ ") +" "+ str(Cutoff_Percentage_From) +" "+ str(Cutoff_Percentage_To) +" "+ str(Minimum_Read_Length) +" "+ str(Minimum_Sequence_Quality) +" "+ str(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq")], shell=True)
             elif str(Architecture.get()) == "Mac ARMv8.6A":
                 subprocess.run(["./ATcleaning_mac_ARMv8.6A " + str(Input_Folder+"/"+Input_File[:-3]).replace(" ", "\\ ") +" "+ str(Cutoff_Percentage_From) +" "+ str(Cutoff_Percentage_To) +" "+ str(Minimum_Read_Length) +" "+ str(Minimum_Sequence_Quality) +" "+ str(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq")], shell=True)
+            elif str(Architecture.get()) == "Generic":
+                subprocess.run(["./ATcleaning_generic " + str(Input_Folder+"/"+Input_File[:-3]).replace(" ", "\\ ") +" "+ str(Cutoff_Percentage_From) +" "+ str(Cutoff_Percentage_To) +" "+ str(Minimum_Read_Length) +" "+ str(Minimum_Sequence_Quality) +" "+ str(Output_Folder.replace(" ", "\\ ") + "/" + Input_File.rpartition("/")[2][0:-9] + "_AT-cleaned.fastq")], shell=True)
             os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
         else:
             with open(Input_Folder +"/"+Input_File[:-3]) as file: # Open the file
@@ -160,9 +162,9 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
     ATcleanerhasrun.set(True)
 
     if UseBinary.get() == False:
-        if input_settings["genomepath"] != "":
+        if input_settings["genomepath"] != ():
             genomesize: int = 0
-            with open(os.fspath(input_settings["genomepath"])) as file:
+            with open(os.fspath(input_settings["genomepath"][0])) as file:
                 for line in file.readlines():
                     if line[0] != ">":
                         for character in line:
@@ -187,36 +189,37 @@ def ATCLEANER(InputFolder: str, OutputFolder: str, CutoffMin: float, CutoffMax: 
 
 
 def PlastomeAlignment(ReferenceGenomePath: str, OutputFolder: str):
-    ReferenceGenomePath = os.fspath(ReferenceGenomePath)
-    if OutputFolder == "":
-        Output_Folder: str = os.fspath(current_directory + "/PlastomeAlignmentOutput") # name of output directory
-        Input_Folder: str = os.fspath(current_directory + "/ATCleanerOutput") # name of output directory
-    else:
-        Output_Folder: str = os.fspath(OutputFolder + "/PlastomeAlignmentOutput")
-        Input_Folder: str = os.fspath(OutputFolder + "/ATCleanerOutput") # name of output directory
+    for reference in ReferenceGenomePath:
+            reference_filepath = os.fspath(reference)
+            if OutputFolder == "":
+                Output_Folder: str = os.fspath(current_directory + "/PlastomeAlignmentOutput/"+str(os.path.split(reference)[1])) # name of output directory
+                Input_Folder: str = os.fspath(current_directory + "/ATCleanerOutput") # name of output directory
+            else:
+                Output_Folder: str = os.fspath(OutputFolder + "/PlastomeAlignmentOutput/"+str(os.path.split(reference)[1]))
+                Input_Folder: str = os.fspath(OutputFolder + "/ATCleanerOutput") # name of output directory
 
-    if os.path.isdir(Output_Folder):
-        for f in os.listdir(Output_Folder):
-            os.remove(Output_Folder + "/" + f)
-        os.removedirs(Output_Folder)
+            if os.path.isdir(Output_Folder):
+                for f in os.listdir(Output_Folder):
+                    os.remove(Output_Folder + "/" + f)
+                os.removedirs(Output_Folder)
 
-        os.makedirs(Output_Folder)
-    else:
-        os.makedirs(Output_Folder)
+                os.makedirs(Output_Folder)
+            else:
+                os.makedirs(Output_Folder)
 
-    subprocess.run(["minimap2 -ax map-ont " + ReferenceGenomePath.replace(" ", "\\ ") + " " + Input_Folder.replace(" ", "\\ ") + "/*.fastq.gz" + " > " + Output_Folder.replace(" ", "\\ ") + "/alignment.sam"], shell=True)
+            subprocess.run(["minimap2 -ax map-ont " + reference_filepath.replace(" ", "\\ ") + " " + Input_Folder.replace(" ", "\\ ") + "/*.fastq.gz" + " > " + Output_Folder.replace(" ", "\\ ") + "/alignment.sam"], shell=True)
 
-    subprocess.run(["samtools", "view", "-b", "-o", Output_Folder+"/alignment.bam", Output_Folder+"/alignment.sam"])
+            subprocess.run(["samtools", "view", "-b", "-o", Output_Folder+"/alignment.bam", Output_Folder+"/alignment.sam"])
 
-    subprocess.run(["samtools", "sort", "-O", "bam", "-o", Output_Folder+"/sorted_alignment.bam", Output_Folder+"/alignment.bam"])
+            subprocess.run(["samtools", "sort", "-O", "bam", "-o", Output_Folder+"/sorted_alignment.bam", Output_Folder+"/alignment.bam"])
 
-    subprocess.run(["samtools", "index", Output_Folder+"/sorted_alignment.bam"])
+            subprocess.run(["samtools", "index", Output_Folder+"/sorted_alignment.bam"])
 
-    os.remove(Output_Folder+"/alignment.bam")
-    os.remove(Output_Folder+"/alignment.sam")
+            os.remove(Output_Folder+"/alignment.bam")
+            os.remove(Output_Folder+"/alignment.sam")
 
-def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str, FlyeParameters: str):
-    ReferenceGenomePath = os.fspath(ReferenceGenomePath)
+def PlastomeAssemble(ReferenceGenomePath: tuple, OutputFolder: str, FlyeParameters: str):
+    reference = os.fspath(ReferenceGenomePath[0])
     if OutputFolder == "":
         Output_Folder: str = os.fspath(current_directory + "/PlastomeDeNovoAssemblyOutput")# name of output directory
         Input_Folder: str = os.fspath(current_directory + "/ATCleanerOutput") # name of output directory
@@ -235,7 +238,7 @@ def PlastomeAssemble(ReferenceGenomePath: str, OutputFolder: str, FlyeParameters
         os.makedirs(Output_Folder+"/PorechopCleaned")
 
     if UseAlignment.get() == True:
-        subprocess.run(["samtools view -bF 0x800" + os.path.split(Output_Folder)[0].replace(" ", "\\ ")+"/PlastomeAlignmentOutput/sorted_alignment.bam > " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.bam"], shell=True)
+        subprocess.run(["samtools view -bF 0x800 " + os.path.split(Output_Folder)[0].replace(" ", "\\ ")+"/PlastomeAlignmentOutput/" + str(os.path.split(reference)[1]) +  "/sorted_alignment.bam > " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.bam"], shell=True)
         subprocess.run(["samtools fastq " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.bam > " +Output_Folder.replace(" ", "\\ ") +"/mapped_primaries.fastq"], shell=True)
         subprocess.run(["gzip " + Output_Folder.replace(" ", "\\ ") + "/mapped_primaries.fastq"], shell=True)
         if PorechopSkip.get() == False: # If we ARE running porechop, run it on the concatenated aligned reads extracted previously.
@@ -309,9 +312,9 @@ def CheckDataDistribution(Input_Folder: str, Output_folder:str, entry, atmin, at
                             Total_Accepted_Bases += sequence_length
                 location += 1
         os.remove(Input_Folder + "/" + Input_File[:-3]) # Delete the un-compressed file
-    if input_settings["genomepath"] != "":
+    if input_settings["genomepath"] != ():
         genomesize: int = 0
-        with open((input_settings["genomepath"])) as file:
+        with open((input_settings["genomepath"][0])) as file:
             for line in file.readlines():
                 if line[0] != ">":
                     for character in line:
@@ -411,7 +414,7 @@ def OpenOutputFolder():
     input_settings["outputdir"] = OutputFolder
 
 def GenomeLocation():
-    ReferenceGenomeLocation = filedialog.askopenfilename(filetypes=[("FASTA","*.fasta *.fa")])
+    ReferenceGenomeLocation = filedialog.askopenfilenames(filetypes=[("FASTA","*.fasta *.fa")])
     input_settings["genomepath"] = ReferenceGenomeLocation
 
 def CheckData():
@@ -436,7 +439,7 @@ PorechopSkip = tk.BooleanVar()
 UseAlignment = tk.BooleanVar()
 UseBinary = tk.BooleanVar()
 Architecture = tk.StringVar()
-Architecture.set("linux x86_64")
+Architecture.set("Generic")
 FlyeParams = tk.StringVar()
 FlyeParams.set("--genome-size 0.0002g --asm-coverage 50 -i 3")
 
@@ -457,7 +460,7 @@ pipelineframe.grid(column=0, row=2, columnspan=3, pady=10, padx=10)
 
 TitleLabel = tk.Label(titleframe, text="Plastome Pipeline").grid(row=0, column=0, pady=20)
 ArchitectureLabel = tk.Label(titleframe, text="Architecture").grid(row=1, column=0, padx=20)
-ArchitectureSelect = tk.OptionMenu(titleframe, Architecture, *["linux x86_64", "Mac ARMv8.6A"]).grid(row=2, column=0)
+ArchitectureSelect = tk.OptionMenu(titleframe, Architecture, *["Generic","linux x86_64", "Mac ARMv8.6A"]).grid(row=2, column=0)
 
 inputfolderlabel = tk.Label(inputbuttonframe, text="Select Input Folder:").grid(row=0, column=0, padx=10)
 SelectInput = tk.Button(inputbuttonframe, text="Input Folder", command=OpenInputFolder).grid(row=1, column=0)
