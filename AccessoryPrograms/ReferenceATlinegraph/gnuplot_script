@@ -1,0 +1,9 @@
+set terminal qt size 1920,1080 enhanced font ",24"
+#set output 'GnuplotOutput.png'
+set datafile separator ","
+set yrange [0:100]
+set xrange [0:206035]
+set format x "%.1tx10^%T"
+set ylabel "AT % (1Kb bins)"
+set xlabel "Locus on CPV4 (bp)"
+plot "dist.csv" using 1:2 with lines linecolor black linewidth 6 title "AT % of CPV4"
