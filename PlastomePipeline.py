@@ -487,9 +487,9 @@ TitleLabel = tk.Label(titleframe, text="Plastome Pipeline").grid(row=0, column=0
 ArchitectureLabel = tk.Label(titleframe, text="Architecture").grid(row=1, column=0, padx=20)
 ArchitectureSelect = tk.OptionMenu(titleframe, Architecture, *["Generic","linux x86_64", "Mac ARMv8.6A"]).grid(row=2, column=0)
 
-inputfolderlabel = tk.Label(inputbuttonframe, text="Select Input Folder:").grid(row=0, column=0)
+inputfolderlabel = tk.Label(inputbuttonframe, text="Select Input Folder:").grid(row=0, column=0, padx=10)
 SelectInput = tk.Button(inputbuttonframe, text="Input Folder", command=OpenInputFolder).grid(row=1, column=0)
-outputfolderlabel = tk.Label(inputbuttonframe, text="Select Output Folder:").grid(row=0, column=1)
+outputfolderlabel = tk.Label(inputbuttonframe, text="Select Output Folder:").grid(row=0, column=1,padx=10)
 SelectOutput = tk.Button(inputbuttonframe, text="Output Folder", command=OpenOutputFolder).grid(row=1, column=1)
 
 minATlabel = tk.Label(inputframe, text="AT % minimum:").grid(row=2, column=0)
