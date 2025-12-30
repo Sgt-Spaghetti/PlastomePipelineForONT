@@ -16,6 +16,7 @@ Housekeeping
 '''
 
 current_directory: str = os.getcwd()
+global_image = None
 
 '''
 AT CLEANING ALGORITHM
@@ -359,6 +360,7 @@ def DataVisualisation(input_file, Output_Folder): # Plot a nice graph of AT dist
                     break # Get out of loop checking bins, move on to next sequence
 
     fig, ax = plt.subplots()
+    fig.set_size_inches(imageCanvas.winfo_width()/fig.get_dpi(), imageCanvas.winfo_height()/fig.get_dpi())
 
     ax.set_xlim([0,100]) # AT% from 0 to 100 %
 
@@ -373,12 +375,12 @@ def DataVisualisation(input_file, Output_Folder): # Plot a nice graph of AT dist
 
     plt.legend(prop={"family": "serif"})
     plt.title("AT % distribution of dataset with applied filters", family="serif")
-    plt.savefig(OutputFolder + '/DataDistribution.png', bbox_inches='tight')
+    plt.savefig(OutputFolder + '/DataDistribution.png')
 
-    img = tk.PhotoImage(file = OutputFolder+"/DataDistribution.png")
+    global global_image
+    global_image = tk.PhotoImage(file = OutputFolder+"/DataDistribution.png")
 
-    imageLabel.configure(image = img)
-    imageLabel.image = img
+    imageCanvas.create_image(0,0,image = global_image, anchor="nw")
 
     print("----- Finished Data Visualisation -----")
 
@@ -388,40 +390,43 @@ GUI STUFF
 
 # Requires chmod u+rx
 
-def Clean():
+def Clean() -> None:
     ATCLEANER(input_settings["inputdir"], input_settings["outputdir"], float(ATmin.get()), float(ATmax.get()), float(minReadLength.get()), float(minQualityScore.get()))
 
-def Alignment():
+def Alignment() -> None:
     print("------- STARTING ALIGNMENT ---------")
     if ATcleanerhasrun.get() == False:
         Clean()
     PlastomeAlignment(input_settings["genomepath"],input_settings["outputdir"]) 
     print("------- FINISHED ALIGNMENT ---------") 
 
-def Assembly():
+def Assembly() -> None:
     if ATcleanerhasrun.get() == False:
         Clean()
     print("-------- STARTING ASSEMBLY ---------") 
     PlastomeAssemble(input_settings["genomepath"],input_settings["outputdir"], FlyeParams.get())
     print("-------- FINISHED ASSEMBLY ---------") 
 
-def OpenInputFolder():
+def OpenInputFolder() -> None:
     InputFolder = filedialog.askdirectory()
     input_settings["inputdir"] = InputFolder
 
-def OpenOutputFolder():
+def OpenOutputFolder() -> None:
     OutputFolder = filedialog.askdirectory()
     input_settings["outputdir"] = OutputFolder
 
-def GenomeLocation():
+def GenomeLocation() -> None:
     ReferenceGenomeLocation = filedialog.askopenfilenames(filetypes=[("FASTA","*.fasta *.fa")])
     input_settings["genomepath"] = ReferenceGenomeLocation
 
-def CheckData():
+def CheckData() -> None:
     if ATcleanerhasrun.get() == False:
         CheckDataDistribution(input_settings["inputdir"], input_settings["outputdir"], Coverage, float(ATmin.get()), float(ATmax.get()), float(minReadLength.get()), float(minQualityScore.get()))
     DataVisualisation(input_settings["outputdir"] + "/SequenceDataDistribution.csv", input_settings["outputdir"])
     
+def window_resize(event) -> None:
+	pass
+
 root = tk.Tk()
 
 input_settings: dict = {
@@ -444,27 +449,47 @@ FlyeParams = tk.StringVar()
 FlyeParams.set("--genome-size 0.0002g --asm-coverage 50 -i 3")
 
 root.title("Plastome Pipeline")
-
+root.columnconfigure(0,weight=0)
+root.columnconfigure(1,weight=1)
+root.rowconfigure(0,weight=0)
+root.rowconfigure(1,weight=1)
+root.rowconfigure(2,weight=0)
 
 titleframe = tk.Frame(root, borderwidth=1, relief="flat", pady=20, padx=20)
-titleframe.grid(column=0, row=0, pady=10, padx=10, columnspan=3)
+titleframe.grid(column=0, row=0, pady=10, padx=10, columnspan=2)
+titleframe.rowconfigure(0,weight=0)
+titleframe.columnconfigure(0,weight=0)
+
 inputframe = tk.Frame(root, borderwidth=1, relief="solid", pady=20, padx=20)
-inputframe.grid(column=0, row=1, pady=10, padx=10)
+inputframe.grid(column=0, row=1, pady=10, padx=10, sticky="nesw")
+inputframe.columnconfigure(0,weight=1)
+
 inputbuttonframe = tk.Frame(inputframe, borderwidth=1, relief="flat", pady=20, padx=20)
-inputbuttonframe.grid(column=0, row=0)
+inputbuttonframe.grid(column=0, row=0, sticky="nesw")
+inputbuttonframe.columnconfigure(0,weight=1)
+inputbuttonframe.columnconfigure(1,weight=1)
+
 visframe = tk.Frame(root, borderwidth=1, relief="sunken", pady=20, padx=20)
-visframe.grid(column=1, row=1, columnspan=2, pady=10, padx=10)
-coverageframe = tk.Frame(visframe)
+visframe.grid(column=1, row=1, pady=10, padx=10, sticky="nesw")
+visframe.columnconfigure(0,weight=1)
+visframe.columnconfigure(1,weight=1)
+visframe.rowconfigure(0,weight=1)
+visframe.rowconfigure(1,weight=0)
+visframe.rowconfigure(2,weight=0)
+
 pipelineframe = tk.Frame(root, borderwidth=1, relief="solid", pady=20, padx=20)
-pipelineframe.grid(column=0, row=2, columnspan=3, pady=10, padx=10)
+pipelineframe.grid(column=0, row=2, columnspan=2, pady=10, padx=10, sticky="nesw")
+pipelineframe.columnconfigure(0,weight=1)
+pipelineframe.columnconfigure(1,weight=1)
+pipelineframe.columnconfigure(2,weight=1)
 
 TitleLabel = tk.Label(titleframe, text="Plastome Pipeline").grid(row=0, column=0, pady=20)
 ArchitectureLabel = tk.Label(titleframe, text="Architecture").grid(row=1, column=0, padx=20)
 ArchitectureSelect = tk.OptionMenu(titleframe, Architecture, *["Generic","linux x86_64", "Mac ARMv8.6A"]).grid(row=2, column=0)
 
-inputfolderlabel = tk.Label(inputbuttonframe, text="Select Input Folder:").grid(row=0, column=0, padx=10)
+inputfolderlabel = tk.Label(inputbuttonframe, text="Select Input Folder:").grid(row=0, column=0)
 SelectInput = tk.Button(inputbuttonframe, text="Input Folder", command=OpenInputFolder).grid(row=1, column=0)
-outputfolderlabel = tk.Label(inputbuttonframe, text="Select Output Folder:").grid(row=0, column=1, padx=10)
+outputfolderlabel = tk.Label(inputbuttonframe, text="Select Output Folder:").grid(row=0, column=1)
 SelectOutput = tk.Button(inputbuttonframe, text="Output Folder", command=OpenOutputFolder).grid(row=1, column=1)
 
 minATlabel = tk.Label(inputframe, text="AT % minimum:").grid(row=2, column=0)
@@ -487,12 +512,13 @@ MinReadLength.grid(row=9, column=0)
 referencegenomelabel = tk.Label(inputframe, text="Select reference genome (Align only):").grid(row=10, column=0)
 SelectInputGenome = tk.Button(inputframe, text="Reference Genome", command=GenomeLocation).grid(row=11, column=0)
 
-DataVis = tk.Button(visframe, text="Check Data Distribution", command=CheckData).grid(row=0, column=0)
-coverageframe.grid(row=1, column=0)
-coveragelabel = tk.Label(coverageframe, text="Coverage:").grid(row=0, column=0)
-Coverage = tk.Text(coverageframe, height=1, width=10)
+imageCanvas = tk.Canvas(visframe, bg="#856ff8")
+imageCanvas.grid(row=0, column=0, columnspan=2, sticky="nesw")
+DataVis = tk.Button(visframe, text="Check Data Distribution", command=CheckData).grid(row=1, column=0, columnspan=2)
+coveragelabel = tk.Label(visframe, text="Coverage:").grid(row=2, column=0, sticky="e")
+Coverage = tk.Text(visframe, height=1, width=10)
 Coverage.config(state=tk.DISABLED)
-Coverage.grid(row=0, column=1)
+Coverage.grid(row=2, column=1, sticky="w")
 
 startprocesseslabel = tk.Label(pipelineframe, text="Run pipelines:").grid(row=0, column=1,)
 LaunchCleanBtn = tk.Button(pipelineframe, text="ATCleaner", command=Clean).grid(row=1, column=0, padx=10,pady=5)
@@ -504,7 +530,5 @@ AlignmentUseCheckBtn = tk.Checkbutton(pipelineframe,text="Use aligned reads", va
 SkipPorechopCheckBtn = tk.Checkbutton(pipelineframe,text="Skip Porechop", variable=PorechopSkip).grid(row=4, column=2, padx=5, pady=5)
 UseBinariesCheckBtn = tk.Checkbutton(pipelineframe, text="Use C++ binary", variable=UseBinary).grid(row=3, column=0,)
 
-imageLabel = tk.Label(visframe)
-imageLabel.grid(row=2, column=0,)
-
+imageCanvas.bind("<Configure>", window_resize)
 root.mainloop()
